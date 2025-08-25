@@ -207,12 +207,7 @@
         Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
       tags:
         - tools
-
-    - name: Configure LitterBox settings
-      ansible.windows.win_template:
-        src: config.yml.j2
-        dest: "{{ ludus_litterbox_install_dir }}\\LitterBox\\config\\config.yml"
-
+        
     - name: Create Windows Firewall rule for LitterBox
       community.windows.win_firewall_rule:
         name: "LitterBox Web Interface"
