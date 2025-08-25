@@ -80,45 +80,28 @@
         path: "{{ ludus_litterbox_install_dir }}"
         state: directory
 
-    - name: Disable Windows Defender for lab environment
-      ansible.windows.win_shell: |
-        Write-Output "WARNING: Disabling Windows Defender for malware analysis lab"
-        
-        # Try to disable Windows Defender Real-time protection
-        try {
-          Set-MpPreference -DisableRealtimeMonitoring $true -Force -ErrorAction Stop
-        } catch {
-          Write-Warning "Could not disable real-time monitoring via Set-MpPreference: $_"
-        }
-        
-        # Disable Windows Defender via Registry (requires reboot to take effect)
-        $defenderPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
-        if (!(Test-Path $defenderPath)) {
-          New-Item -Path $defenderPath -Force | Out-Null
-        }
-        Set-ItemProperty -Path $defenderPath -Name "DisableAntiSpyware" -Value 1 -Type DWord -Force
-        
-        # Try to disable Windows Defender services
-        try {
-          Stop-Service -Name WinDefend -Force -ErrorAction Stop
-          Set-Service -Name WinDefend -StartupType Disabled -ErrorAction Stop
-        } catch {
-          Write-Warning "Could not stop/disable WinDefend service: $_"
-        }
-        
-        # Disable Windows Defender via Group Policy
-        $gpoPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"
-        if (!(Test-Path $gpoPath)) {
-          New-Item -Path $gpoPath -Force | Out-Null
-        }
-        Set-ItemProperty -Path $gpoPath -Name "DisableRealtimeMonitoring" -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $gpoPath -Name "DisableBehaviorMonitoring" -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $gpoPath -Name "DisableOnAccessProtection" -Value 1 -Type DWord -Force
-        Set-ItemProperty -Path $gpoPath -Name "DisableScanOnRealtimeEnable" -Value 1 -Type DWord -Force
-        
-        Write-Output "Windows Defender disable settings applied - may require reboot to fully take effect"
+    - name: Disable Windows Defender 1
+      ansible.windows.win_shell: 'Add-MpPreference -ExclusionPath C:\'
+      ignore_errors: yes
       when: ludus_litterbox_disable_defender
-      ignore_errors: true
+      tags:
+        - defender
+        - dangerous
+
+    - name: Disable Windows Defender 2
+      ansible.windows.win_shell: |
+        New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Force | Out-Null
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Name "DisableAntiSpyware" -Value 1 -Type DWord
+        New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -Force | Out-Null
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableRealtimeMonitoring" -Value 1 -Type DWord
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableBehaviorMonitoring" -Value 1 -Type DWord
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableOnAccessProtection" -Value 1 -Type DWord
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableScanOnRealtimeEnable" -Value 1 -Type DWord
+        New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Force | Out-Null
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SpynetReporting" -Value 0 -Type DWord
+        Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SubmitSamplesConsent" -Value 2 -Type DWord
+      ignore_errors: yes
+      when: ludus_litterbox_disable_defender
       tags:
         - defender
         - dangerous
@@ -277,28 +260,6 @@
         directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
       when: ludus_litterbox_desktop_shortcut
 
-    - name: Add Windows Defender exclusions for malware analysis
-      ansible.windows.win_shell: |
-        # Add exclusion for entire C: drive - EXTREMELY DANGEROUS
-        Add-MpPreference -ExclusionPath "C:\" -Force
-        # Add exclusions for LitterBox directories
-        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox" -Force
-        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\uploads" -Force
-        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\results" -Force
-        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\temp" -Force
-        
-        # Add process exclusions for analysis tools
-        Add-MpPreference -ExclusionProcess "python.exe" -Force
-        Add-MpPreference -ExclusionProcess "pe-sieve.exe" -Force
-        Add-MpPreference -ExclusionProcess "moneta.exe" -Force
-        Add-MpPreference -ExclusionProcess "hollows_hunter.exe" -Force
-        
-        Write-Output "Windows Defender exclusions added for malware analysis"
-      when: ludus_litterbox_defender_exclusions
-      ignore_errors: true
-      tags:
-        - defender
-
     - name: Download GrumpyCats client library
       ansible.windows.win_shell: |
         cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
@@ -315,7 +276,7 @@
         msg:
           - "LitterBox has been successfully installed!"
           - "Installation directory: {{ ludus_litterbox_install_dir }}\\LitterBox"
-          - "Web interface: http://{{ ludus_litterbox_host }}:{{ ludus_litterbox_port }}"
+          - "Web interface will run on default port when started"
           - "To start LitterBox:"
           - "  - Use the desktop shortcut 'LitterBox'"
           - "  - Or run: {{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
