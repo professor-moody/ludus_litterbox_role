@@ -1,23 +1,6 @@
 ---
 # Handlers for ludus_litterbox
 
-- name: restart litterbox service
-  ansible.windows.win_service:
-    name: LitterBox
-    state: restarted
-  when: ludus_litterbox_autostart
-
-- name: start litterbox service
-  ansible.windows.win_service:
-    name: LitterBox
-    state: started
-  when: ludus_litterbox_autostart
-
-- name: stop litterbox service
-  ansible.windows.win_service:
-    name: LitterBox
-    state: stopped
-
 - name: restart python
   ansible.windows.win_shell: |
     # Refresh environment variables to ensure Python is in PATH

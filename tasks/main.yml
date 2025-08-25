@@ -19,6 +19,56 @@
   tags:
     - always
 
+- name: Check if running as administrator
+  ansible.windows.win_shell: |
+    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
+    if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+      Write-Output "Administrator privileges confirmed"
+      exit 0
+    } else {
+      Write-Output "Administrator privileges required"
+      exit 1
+    }
+  register: admin_check
+  when: ludus_litterbox_require_admin
+  tags:
+    - always
+
+- name: Fail if not running as administrator
+  ansible.builtin.fail:
+    msg: "This role requires administrator privileges. Please run with elevated permissions."
+  when: 
+    - ludus_litterbox_require_admin
+    - admin_check.rc != 0
+  tags:
+    - always
+
+- name: Check if Chocolatey is installed
+  ansible.windows.win_shell: |
+    try {
+      choco --version
+      exit 0
+    } catch {
+      exit 1
+    }
+  register: chocolatey_check
+  ignore_errors: true
+  when: ludus_litterbox_install_chocolatey
+  tags:
+    - chocolatey
+
+- name: Install Chocolatey
+  ansible.windows.win_shell: |
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+  when: 
+    - ludus_litterbox_install_chocolatey
+    - chocolatey_check.rc != 0
+  tags:
+    - chocolatey
+
 - name: Install LitterBox
   when: ludus_litterbox_install
   tags:
@@ -163,8 +213,6 @@
       ansible.windows.win_template:
         src: config.yml.j2
         dest: "{{ ludus_litterbox_install_dir }}\\LitterBox\\config\\config.yml"
-      notify:
-        - restart litterbox service
 
     - name: Create Windows Firewall rule for LitterBox
       ansible.windows.win_firewall_rule:
@@ -191,26 +239,25 @@
         working_directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
       when: ludus_litterbox_desktop_shortcut
 
-    - name: Create Windows service for LitterBox (optional)
+    - name: Add Windows Defender exclusions for malware analysis
       ansible.windows.win_shell: |
-        $serviceName = "LitterBox"
-        $serviceExists = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        # Add exclusions for LitterBox directories
+        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox" -Force
+        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\uploads" -Force
+        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\results" -Force
+        Add-MpPreference -ExclusionPath "{{ ludus_litterbox_install_dir }}\\LitterBox\\temp" -Force
         
-        if ($serviceExists) {
-          Stop-Service -Name $serviceName -Force
-          sc.exe delete $serviceName
-        }
+        # Add process exclusions for analysis tools
+        Add-MpPreference -ExclusionProcess "python.exe" -Force
+        Add-MpPreference -ExclusionProcess "pe-sieve.exe" -Force
+        Add-MpPreference -ExclusionProcess "moneta.exe" -Force
+        Add-MpPreference -ExclusionProcess "hollows_hunter.exe" -Force
         
-        $pythonPath = "{{ ludus_litterbox_install_dir }}\\LitterBox\\venv\\Scripts\\python.exe"
-        $scriptPath = "{{ ludus_litterbox_install_dir }}\\LitterBox\\litterbox.py"
-        $arguments = if ({{ ludus_litterbox_debug | lower }}) { "--debug" } else { "" }
-        
-        New-Service -Name $serviceName `
-          -DisplayName "LitterBox Malware Analysis" `
-          -Description "LitterBox sandbox environment for malware analysis" `
-          -BinaryPathName "`"$pythonPath`" `"$scriptPath`" $arguments" `
-          -StartupType Manual
-      when: ludus_litterbox_autostart
+        Write-Output "Windows Defender exclusions added for malware analysis"
+      when: ludus_litterbox_defender_exclusions
+      ignore_errors: true
+      tags:
+        - defender
 
     - name: Download GrumpyCats client library
       ansible.windows.win_shell: |
@@ -232,6 +279,7 @@
           - "To start LitterBox:"
           - "  - Use the desktop shortcut 'LitterBox'"
           - "  - Or run: {{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
+          - "  - Or manually: cd {{ ludus_litterbox_install_dir }}\\LitterBox && .\\venv\\Scripts\\python.exe litterbox.py"
           - ""
           - "⚠️  SECURITY WARNING: LitterBox is designed for isolated testing environments only!"
           - "Do not use in production or on systems with sensitive data."

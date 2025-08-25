@@ -20,8 +20,11 @@ ludus_litterbox_repo_url: "https://github.com/BlackSnufkin/LitterBox.git"
 ludus_litterbox_host: "127.0.0.1"
 ludus_litterbox_port: 1337
 
-# Enable or disable auto-start service
-ludus_litterbox_autostart: false
+# Windows Defender exclusions for malware analysis
+ludus_litterbox_defender_exclusions: true
+
+# Require administrator privileges check
+ludus_litterbox_require_admin: true
 
 # Enable or disable firewall rule creation
 ludus_litterbox_firewall_rule: true
@@ -72,3 +75,6 @@ ludus_litterbox_process_monitor_interval: 5
 ludus_litterbox_memory_scan_interval: 10
 ludus_litterbox_cleanup_days: 30
 ludus_litterbox_enable_telemetry: false
+
+# Chocolatey installation
+ludus_litterbox_install_chocolatey: true
