@@ -30,9 +30,3 @@ galaxy_info:
     - defensive
 
 dependencies: []
-
-# Collection dependencies
-collections:
-  - ansible.windows
-  - community.windows
-  - chocolatey.chocolatey
