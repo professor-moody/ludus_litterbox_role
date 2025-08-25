@@ -78,3 +78,6 @@ ludus_litterbox_enable_telemetry: false
 
 # Chocolatey installation
 ludus_litterbox_install_chocolatey: true
+
+# Kill AV
+ludus_litterbox_disable_defender: true
