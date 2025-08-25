@@ -14,7 +14,7 @@ LitterBox provides a controlled sandbox environment designed for security profes
 - **Web-Based Interface**: Easy-to-use UI running on port 1337
 - **API Integration**: GrumpyCats client library for automation
 
-## ⚠️ Security Notice
+## Security Notice
 
 **CRITICAL**: This tool is designed for isolated lab environments only!
 - Deploy only in isolated, non-production systems
