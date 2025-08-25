@@ -68,7 +68,7 @@ cd ludus_litterbox_role
 cp -r . /etc/ansible/roles/ludus_litterbox_role/
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Key Variables (defaults/main.yml)
 
@@ -143,7 +143,7 @@ ludus_litterbox_debug: false                              # Enable debug logging
     - role: ludus_litterbox
 ```
 
-## 🖥️ Post-Installation Usage
+## Post-Installation Usage
 
 ### Accessing LitterBox
 
@@ -178,28 +178,6 @@ client = GrumpyCat("http://127.0.0.1:1337")
 result = client.analyze_file("suspicious.exe")
 ```
 
-## Analysis Capabilities
-
-### Static Analysis Features
-- **YARA Scanning**: Signature-based detection
-- **PE Analysis**: Import/Export tables, sections, resources
-- **Document Analysis**: Macro extraction from Office files
-- **String Extraction**: Unicode and ASCII strings
-- **Entropy Analysis**: Packed/encrypted content detection
-- **LNK Parsing**: Shortcut file analysis
-
-### Dynamic Analysis Features
-- **Process Monitoring**: Behavior tracking
-- **Memory Inspection**: Runtime memory analysis
-- **Code Injection Detection**: Hollowing and injection techniques
-- **Sleep Pattern Analysis**: Evasion detection
-- **ETW Telemetry**: Windows event tracing
-
-### Specialized Scanners
-- **HolyGrail**: Bring Your Own Vulnerable Driver (BYOVD) detection
-- **Doppelganger**: Process impersonation analysis
-- **FuzzyHash**: Similarity matching
-
 ## Maintenance
 
 ### Update LitterBox
@@ -228,7 +206,7 @@ Remove-Item -Path "C:\Tools\LitterBox" -Recurse -Force
 ludus range deploy -t "litterbox" --limit "TARGET_VM"
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -271,7 +249,7 @@ Test-Path "C:\Tools\LitterBox\LitterBox\venv"
 C:\Tools\LitterBox\LitterBox\venv\Scripts\python.exe -c "import flask; print('Flask OK')"
 ```
 
-## 📁 Directory Structure
+## Directory Structure
 
 After installation, the following structure is created:
 
@@ -292,7 +270,7 @@ C:\Tools\LitterBox\
 └── start_litterbox.bat    # Startup script
 ```
 
-## 🏷️ Tags
+## Tags
 
 The role supports the following Ansible tags for selective execution:
 
@@ -306,7 +284,7 @@ The role supports the following Ansible tags for selective execution:
 - `defender` - Windows Defender configuration (use with caution!)
 - `dangerous` - High-risk operations
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -316,7 +294,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [LitterBox GitHub Repository](https://github.com/BlackSnufkin/LitterBox)
 - [GrumpyCats API Client](https://github.com/BlackSnufkin/GrumpyCats)
@@ -324,18 +302,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [Ansible Windows Documentation](https://docs.ansible.com/ansible/latest/collections/ansible/windows/)
 - [YARA Documentation](https://yara.readthedocs.io/)
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ✨ Acknowledgments
+## Acknowledgments
 
 - [BlackSnufkin](https://github.com/BlackSnufkin) - Original LitterBox author
 - [Professor Moody](https://github.com/professor-moody) - Ludus role maintainer
 - [Bad Sector Labs](https://github.com/badsectorlabs) - Ludus platform creators
 - The security research community for continuous improvements
 
-## ⚖️ Legal Disclaimer
+## Legal Disclaimer
 
 **IMPORTANT**: This tool is intended for authorized security testing and research purposes only. Users are solely responsible for complying with all applicable laws and regulations in their jurisdiction. 
 
