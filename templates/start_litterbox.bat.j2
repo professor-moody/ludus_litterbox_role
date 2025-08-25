@@ -10,14 +10,14 @@ echo ============================================
 echo.
 echo Starting LitterBox server...
 echo.
-echo Web Interface: http://{{ ludus_litterbox_host }}:{{ ludus_litterbox_port }}
+echo Note: LitterBox will start on its default port
 echo.
 echo Press Ctrl+C to stop the server
 echo ============================================
 echo.
 
 REM Activate virtual environment and start LitterBox
-"{{ ludus_litterbox_install_dir }}\\LitterBox\\venv\\Scripts\\python.exe" litterbox.py {% if ludus_litterbox_debug %}--debug{% endif %} --host {{ ludus_litterbox_host }} --port {{ ludus_litterbox_port }}
+"{{ ludus_litterbox_install_dir }}\\LitterBox\\venv\\Scripts\\python.exe" litterbox.py {% if ludus_litterbox_debug %}--debug{% endif %}
 
 echo.
 echo LitterBox has stopped.

@@ -235,7 +235,7 @@
         dest: "C:\\Users\\Public\\Desktop\\LitterBox.lnk"
         icon: "{{ ludus_litterbox_install_dir }}\\LitterBox\\static\\favicon.ico,0"
         description: "LitterBox - Malware Analysis Sandbox"
-        working_directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
+        directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
       when: ludus_litterbox_desktop_shortcut
 
     - name: Add Windows Defender exclusions for malware analysis
