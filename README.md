@@ -61,10 +61,6 @@ ludus range deploy -t user-defined-roles  --only-roles ludus_litterbox_role --li
 # Clone the repository
 git clone https://github.com/professor-moody/ludus_litterbox_role
 cd ludus_litterbox_role
-
-# Copy to your Ansible roles directory
-This won't work either: 
-
 ```
 # Add role to ludus
 ```ludus roles add -d ludus_litterbox_role```
