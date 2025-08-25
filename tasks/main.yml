@@ -148,7 +148,6 @@
         }
       ignore_errors: true
       tags:
-        - dependencies      tags:
         - dependencies
 
     - name: Clone LitterBox repository
