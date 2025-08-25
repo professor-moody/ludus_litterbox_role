@@ -1,16 +1,26 @@
-# Ansible Role: Ludus LitterBox
+# Ludus LitterBox
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An Ansible role for deploying [LitterBox](https://github.com/BlackSnufkin/LitterBox) - a secure sandbox environment for malware analysis and red team payload testing - on Windows systems in Ludus environments.
+A Ludus role for deploying [LitterBox](https://github.com/BlackSnufkin/LitterBox) - a comprehensive malware analysis sandbox - on Windows systems within Ludus lab environments.
 
-LitterBox provides a controlled sandbox environment designed for security professionals to develop and test payloads. This Ludus role automates the deployment and configuration of LitterBox on Windows VMs, including:
+## Overview
 
-- **Testing evasion techniques** against modern detection methods
-- **Validating detection signatures** before field deployment
-- **Analyzing malware behavior** in an isolated environment
-- **Keeping payloads in-house** without exposing them to external vendors
-- **LLM-assisted analysis** through MCP server integration
+LitterBox provides a controlled sandbox environment designed for security professionals to analyze malware and test security tools. This Ludus role automates the deployment and configuration of LitterBox on Windows VMs, providing:
+
+- **Static and Dynamic Analysis**: Comprehensive malware behavior analysis
+- **Multiple Analysis Engines**: YARA, PE analysis, memory inspection, and more
+- **Isolated Testing Environment**: Safe execution and analysis of suspicious files
+- **Web-Based Interface**: Easy-to-use UI running on port 1337
+- **API Integration**: GrumpyCats client library for automation
+
+## ⚠️ Security Notice
+
+**CRITICAL**: This tool is designed for isolated lab environments only!
+- Deploy only in isolated, non-production systems
+- Contains functionality to disable Windows Defender
+- Handles potentially malicious files
+- Never expose to production networks
 
 ## Requirements
 
@@ -23,32 +33,28 @@ LitterBox provides a controlled sandbox environment designed for security profes
   - `chocolatey.chocolatey` >= 1.5.0
 
 ### Target VM Requirements
-- Windows 10/11, Server 2019/2022
-- Minimum 4GB RAM (8GB recommended)
-- 10GB free disk space
-- Administrator privileges
+- **OS**: Windows 10/11, Server 2019/2022 (SERVER 2022 RECOMMENED FOR AV DISABLE)
+- **RAM**: Minimum 4GB (8GB recommended)
+- **Storage**: 10GB free disk space
+- **Privileges**: Administrator access required
+- **Network**: Internet access for initial setup
 
 ## Installation
 
-### Install to a Ludus Range
+### Quick Deploy to Ludus Range
 
 ```bash
-# Install required collections on the Ludus server (if not already installed)
-ansible-galaxy collection install ansible.windows
-ansible-galaxy collection install community.windows
-ansible-galaxy collection install chocolatey.chocolatey
-
-# Or install from requirements file
-ansible-galaxy collection install -r requirements.yml
+# Install required collections on Ludus server
+ansible-galaxy collection install ansible.windows community.windows chocolatey.chocolatey
 
 # Add the role to your Ludus server
-ludus ansible roles add professor-moody.ludus_litterbox_role
+ludus range roles add ludus_litterbox_role
 
 # Deploy to specific Windows VMs
-ludus ansible deploy -t "litterbox_server" --limit "WS01,WS02"
+ludus range deploy -t "litterbox" --limit "WS01,WS02"
 
 # Or deploy to all Windows VMs
-ludus ansible deploy -t "litterbox_server" --limit windows
+ludus range deploy -t "litterbox" --limit windows
 ```
 
 ### Manual Installation
@@ -62,220 +68,288 @@ cd ludus_litterbox_role
 cp -r . /etc/ansible/roles/ludus_litterbox_role/
 ```
 
-## 📝 Role Variables
+## 🔧 Configuration
 
-Available variables are listed below, along with default values (see `defaults/main.yml`):
+### Key Variables (defaults/main.yml)
 
 ```yaml
-# Enable or disable LitterBox installation
-ludus_litterbox_install: true
-
-# Installation directory for LitterBox
-ludus_litterbox_install_dir: "C:\\Tools\\LitterBox"
-
-# Python version to install (if not already present)
-ludus_litterbox_python_version: "3.11.9"
-
-# Enable or disable Python installation
-ludus_litterbox_install_python: true
-
-# LitterBox repository URL
+# Core Installation Settings
+ludus_litterbox_install: true                              # Enable/disable installation
+ludus_litterbox_install_dir: "C:\\Tools\\LitterBox"       # Installation directory
+ludus_litterbox_python_version: "3.11.9"                  # Python version to install
 ludus_litterbox_repo_url: "https://github.com/BlackSnufkin/LitterBox.git"
 
-# LitterBox server configuration
-ludus_litterbox_host: "127.0.0.1"
-ludus_litterbox_port: 1337
+# Network Configuration
+ludus_litterbox_host: "127.0.0.1"                         # Bind address (use 0.0.0.0 for network access)
+ludus_litterbox_port: 1337                                # Web interface port
 
-# Enable or disable auto-start service
-ludus_litterbox_autostart: false
+# Security Settings
+ludus_litterbox_disable_defender: true                    # Disable Windows Defender (LAB USE ONLY!)
+ludus_litterbox_defender_exclusions: true                 # Add AV exclusions
+ludus_litterbox_require_admin: true                       # Require admin privileges
 
-# Enable or disable firewall rule creation
-ludus_litterbox_firewall_rule: true
+# UI/Access Settings
+ludus_litterbox_firewall_rule: true                       # Create firewall exception
+ludus_litterbox_desktop_shortcut: true                    # Create desktop shortcut
 
-# Enable or disable desktop shortcut creation
-ludus_litterbox_desktop_shortcut: true
+# Analysis Configuration
+ludus_litterbox_analysis_timeout: 300                     # Analysis timeout (seconds)
+ludus_litterbox_max_file_size: 104857600                 # Max file size (100MB)
+ludus_litterbox_allowed_extensions:                       # Supported file types
+  - exe, dll, sys, scr, com
+  - bat, ps1, vbs, js
+  - doc, docx, xls, xlsx, ppt, pptx, pdf, lnk
 
-# Enable debug mode
-ludus_litterbox_debug: false
+# Feature Flags
+ludus_litterbox_enable_static: true                       # Static analysis
+ludus_litterbox_enable_dynamic: true                      # Dynamic analysis
+ludus_litterbox_enable_holygrail: true                   # BYOVD detection
+ludus_litterbox_enable_doppelganger: true                # Process similarity
+ludus_litterbox_enable_yara: true                        # YARA scanning
+
+# System Settings
+ludus_litterbox_install_chocolatey: true                  # Install Chocolatey
+ludus_litterbox_install_python: true                      # Install Python if missing
+ludus_litterbox_debug: false                              # Enable debug logging
 ```
 
-## Example Playbook
+## Example Playbooks
 
-### Basic Installation
+### Custom Configuration for Network Access
 
 ```yaml
 ---
-- hosts: windows_hosts
-  roles:
-    - role: ludus_litterbox
-```
-
-### Custom Configuration
-
-```yaml
----
-- hosts: windows_analysis_servers
+- hosts: litterbox_servers
   vars:
-    ludus_litterbox_install_dir: "D:\\SecurityTools\\LitterBox"
-    ludus_litterbox_port: 8080
-    ludus_litterbox_autostart: true
-    ludus_litterbox_debug: true
+    ludus_litterbox_host: "0.0.0.0"              # Listen on all interfaces
+    ludus_litterbox_port: 8080                   # Custom port
+    ludus_litterbox_install_dir: "D:\\Security\\LitterBox"
+    ludus_litterbox_debug: true                  # Enable debug logging
+    ludus_litterbox_analysis_timeout: 600        # 10 minute timeout
   roles:
     - role: ludus_litterbox
 ```
 
-### Network-Accessible Configuration
+### Minimal Installation (Keep Defender Active)
 
 ```yaml
 ---
-- hosts: litterbox_server
+- hosts: analysis_workstations
   vars:
-    ludus_litterbox_host: "0.0.0.0"  # Listen on all interfaces
-    ludus_litterbox_port: 1337
-    ludus_litterbox_firewall_rule: true
+    ludus_litterbox_disable_defender: false      # Keep Defender enabled
+    ludus_litterbox_defender_exclusions: false   # No AV exclusions
+    ludus_litterbox_enable_dynamic: false        # Static analysis only
   roles:
     - role: ludus_litterbox
 ```
 
-## Post-Installation
+## 🖥️ Post-Installation Usage
 
-After installation, LitterBox can be accessed in several ways:
+### Accessing LitterBox
 
-### Web Interface
-- Navigate to: `http://127.0.0.1:1337` (or your configured host:port)
-- Use the desktop shortcut if created
+After successful deployment, access LitterBox through:
 
-### Start Methods
-1. **Desktop Shortcut**: Double-click "LitterBox" on the desktop
-2. **Batch File**: Run `C:\Tools\LitterBox\start_litterbox.bat`
-3. **Manual Start**: 
+1. **Web Interface**: 
+   - Local: `http://127.0.0.1:1337`
+   - Network: `http://<VM_IP>:1337` (if configured for network access)
+
+2. **Desktop Shortcut**: 
+   - Double-click "LitterBox" on the desktop
+
+3. **Command Line**:
    ```powershell
+   # Using the start script
+   C:\Tools\LitterBox\start_litterbox.bat
+   
+   # Manual start
    cd C:\Tools\LitterBox\LitterBox
    .\venv\Scripts\python.exe litterbox.py
    ```
 
-### API Access
-The GrumpyCats client library is automatically downloaded and available for API access:
+### API Access with GrumpyCats
+
+The GrumpyCats client library is automatically installed:
+
 ```python
+# Example API usage
 from grumpycat import GrumpyCat
+
 client = GrumpyCat("http://127.0.0.1:1337")
+result = client.analyze_file("suspicious.exe")
 ```
 
-## Security Considerations
+## Analysis Capabilities
 
-⚠️ **IMPORTANT SECURITY WARNINGS:**
+### Static Analysis Features
+- **YARA Scanning**: Signature-based detection
+- **PE Analysis**: Import/Export tables, sections, resources
+- **Document Analysis**: Macro extraction from Office files
+- **String Extraction**: Unicode and ASCII strings
+- **Entropy Analysis**: Packed/encrypted content detection
+- **LNK Parsing**: Shortcut file analysis
 
-1. **DEVELOPMENT USE ONLY**: This platform is designed exclusively for testing environments
-2. **ISOLATION REQUIRED**: Execute only in isolated VMs or dedicated testing environments
-3. **NO WARRANTY**: Provided without guarantees; use at your own risk
-4. **LEGAL COMPLIANCE**: Users are responsible for ensuring all usage complies with applicable laws
+### Dynamic Analysis Features
+- **Process Monitoring**: Behavior tracking
+- **Memory Inspection**: Runtime memory analysis
+- **Code Injection Detection**: Hollowing and injection techniques
+- **Sleep Pattern Analysis**: Evasion detection
+- **ETW Telemetry**: Windows event tracing
 
-### Recommended Security Practices:
-- Deploy only on isolated, non-production systems
-- Use network segmentation to isolate LitterBox instances
-- Regularly snapshot VMs before testing unknown samples
-- Monitor system resources during analysis
-- Never expose LitterBox to the internet without proper authentication
+### Specialized Scanners
+- **HolyGrail**: Bring Your Own Vulnerable Driver (BYOVD) detection
+- **Doppelganger**: Process impersonation analysis
+- **FuzzyHash**: Similarity matching
 
-## 📊 Analysis Capabilities
-
-LitterBox provides comprehensive malware analysis features:
-
-### Static Analysis
-- YARA signature detection
-- PE file analysis (imports, exports, sections)
-- Document macro extraction
-- String extraction and entropy analysis
-- LNK file parsing
-
-### Dynamic Analysis
-- Process behavior monitoring
-- Memory region inspection
-- Code injection detection
-- Sleep pattern analysis
-- ETW telemetry collection
-
-### Specialized Analysis
-- **HolyGrail**: BYOVD vulnerability detection
-- **Doppelganger**: Process similarity analysis
-- **FuzzyHash**: Code similarity detection
-
-## 🔄 Updates and Maintenance
+## Maintenance
 
 ### Update LitterBox
+
 ```powershell
+# Update to latest version
 cd C:\Tools\LitterBox\LitterBox
 git pull
 .\venv\Scripts\pip.exe install -r requirements.txt --upgrade
 ```
 
-### Re-run the Role
+### Re-run Ansible Role
+
 ```bash
-ludus ansible deploy -t "litterbox_server" --limit "TARGET_VM"
+# Force update on specific VM
+ludus range deploy -t "litterbox" --limit "TARGET_VM" --extra-vars "ludus_litterbox_force_update=true"
 ```
 
-## Troubleshooting
+### Clean Installation
 
-### Common Issues
+```powershell
+# Remove existing installation
+Remove-Item -Path "C:\Tools\LitterBox" -Recurse -Force
 
-1. **Python Installation Fails**
-   - Manually install Python 3.11+ from python.org
-   - Ensure PATH is configured correctly
+# Re-deploy
+ludus range deploy -t "litterbox" --limit "TARGET_VM"
+```
 
-2. **Git Clone Fails**
-   - Check internet connectivity
-   - Verify git is installed: `git --version`
-   - Try manual clone in PowerShell
+## 🐛 Troubleshooting
 
-3. **Port Already in Use**
-   - Change the port in variables: `ludus_litterbox_port: 8080`
-   - Check for conflicting services
+### Common Issues and Solutions
 
-4. **Service Won't Start**
-   - Check Windows Event Viewer for errors
-   - Verify Python virtual environment is intact
-   - Run manually to see error messages
+| Issue | Solution |
+|-------|----------|
+| **Python Installation Fails** | Manually install Python 3.11+ from python.org, ensure PATH is set |
+| **Git Clone Errors** | Check internet connectivity, verify proxy settings if applicable |
+| **Port Already in Use** | Change `ludus_litterbox_port` variable or stop conflicting service |
+| **Module Import Errors** | Re-run pip install: `.\venv\Scripts\pip.exe install -r requirements.txt` |
+| **Firewall Blocking Access** | Verify firewall rule created, check Windows Firewall settings |
+| **Insufficient Permissions** | Run Ansible with elevated privileges, check UAC settings |
 
-### Debug Mode
-Enable debug output by setting:
+### Enable Debug Mode
+
+For detailed logging:
+
 ```yaml
 ludus_litterbox_debug: true
+ludus_litterbox_log_level: "DEBUG"
 ```
 
-## 📚 Additional Resources
+Check logs at: `C:\Tools\LitterBox\LitterBox\logs\`
 
-- [LitterBox GitHub Repository](https://github.com/BlackSnufkin/LitterBox)
-- [GrumpyCats Client Documentation](https://github.com/BlackSnufkin/GrumpyCats)
-- [Ludus Documentation](https://docs.ludus.cloud)
-- [Ansible Windows Modules](https://docs.ansible.com/ansible/latest/collections/ansible/windows/)
+### Verify Installation
 
-## Contributing
+```powershell
+# Check Python
+python --version
+
+# Check git
+git --version
+
+# Check LitterBox directory
+Test-Path "C:\Tools\LitterBox\LitterBox"
+
+# Check virtual environment
+Test-Path "C:\Tools\LitterBox\LitterBox\venv"
+
+# Test Python packages
+C:\Tools\LitterBox\LitterBox\venv\Scripts\python.exe -c "import flask; print('Flask OK')"
+```
+
+## 📁 Directory Structure
+
+After installation, the following structure is created:
+
+```
+C:\Tools\LitterBox\
+├── LitterBox\              # Main application directory
+│   ├── venv\              # Python virtual environment
+│   ├── config\            # Configuration files
+│   ├── uploads\           # Uploaded samples
+│   ├── results\           # Analysis results
+│   ├── temp\              # Temporary files
+│   ├── logs\              # Application logs
+│   ├── database\          # Local database
+│   ├── tools\             # Analysis tools
+│   ├── Scanners\          # Scanner modules
+│   ├── Utils\             # Utility scripts
+│   └── GrumpyCats\        # API client library
+└── start_litterbox.bat    # Startup script
+```
+
+## 🏷️ Tags
+
+The role supports the following Ansible tags for selective execution:
+
+- `litterbox` - Complete LitterBox installation
+- `install` - Core installation tasks
+- `chocolatey` - Chocolatey package manager
+- `python` - Python installation
+- `dependencies` - Required dependencies
+- `tools` - Analysis tools setup
+- `directories` - Directory creation
+- `defender` - Windows Defender configuration (use with caution!)
+- `dangerous` - High-risk operations
+
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository at https://github.com/professor-moody/ludus_litterbox_role
+1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
+## 📚 Additional Resources
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+- [LitterBox GitHub Repository](https://github.com/BlackSnufkin/LitterBox)
+- [GrumpyCats API Client](https://github.com/BlackSnufkin/GrumpyCats)
+- [Ludus Documentation](https://docs.ludus.cloud)
+- [Ansible Windows Documentation](https://docs.ansible.com/ansible/latest/collections/ansible/windows/)
+- [YARA Documentation](https://yara.readthedocs.io/)
 
-## Acknowledgments
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ✨ Acknowledgments
 
 - [BlackSnufkin](https://github.com/BlackSnufkin) - Original LitterBox author
 - [Professor Moody](https://github.com/professor-moody) - Ludus role maintainer
-- [Bad Sector Labs](https://github.com/badsectorlabs) - Ludus platform
-- All contributors to the integrated analysis tools
+- [Bad Sector Labs](https://github.com/badsectorlabs) - Ludus platform creators
+- The security research community for continuous improvements
 
-## Disclaimer
+## ⚖️ Legal Disclaimer
 
-This tool is intended for authorized security testing and research purposes only. Users are responsible for complying with all applicable laws and regulations. The authors assume no liability for misuse or damage caused by this software.
+**IMPORTANT**: This tool is intended for authorized security testing and research purposes only. Users are solely responsible for complying with all applicable laws and regulations in their jurisdiction. 
+
+The authors and contributors:
+- Assume no liability for misuse or damage caused by this software
+- Do not condone or support illegal activities
+- Recommend using this tool only in isolated lab environments
+- Advise obtaining proper authorization before testing
+
+By using this software, you acknowledge that you understand and agree to these terms.
 
 ---
 
-**Ludus Role Version**: 1.0.0  
-**LitterBox Version**: Latest from GitHub  
-**Last Updated**: 2024
+**Role Version**: 1.0.0  
+**LitterBox Compatibility**: Latest  
+**Last Updated**: 2024  
+**Maintained by**: Professor Moody
