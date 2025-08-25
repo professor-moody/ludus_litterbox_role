@@ -17,6 +17,10 @@ LitterBox provides a controlled sandbox environment designed for security profes
 ### Ludus Host Requirements
 - Ludus version 1.3.0 or higher
 - Ansible 2.10 or higher
+- Required Ansible Collections:
+  - `ansible.windows` >= 2.0.0
+  - `community.windows` >= 2.0.0
+  - `chocolatey.chocolatey` >= 1.5.0
 
 ### Target VM Requirements
 - Windows 10/11, Server 2019/2022
@@ -29,6 +33,14 @@ LitterBox provides a controlled sandbox environment designed for security profes
 ### Install to a Ludus Range
 
 ```bash
+# Install required collections on the Ludus server (if not already installed)
+ansible-galaxy collection install ansible.windows
+ansible-galaxy collection install community.windows
+ansible-galaxy collection install chocolatey.chocolatey
+
+# Or install from requirements file
+ansible-galaxy collection install -r requirements.yml
+
 # Add the role to your Ludus server
 ludus ansible roles add professor-moody.ludus_litterbox_role
 

@@ -215,7 +215,7 @@
         dest: "{{ ludus_litterbox_install_dir }}\\LitterBox\\config\\config.yml"
 
     - name: Create Windows Firewall rule for LitterBox
-      ansible.windows.win_firewall_rule:
+      community.windows.win_firewall_rule:
         name: "LitterBox Web Interface"
         localport: "{{ ludus_litterbox_port }}"
         action: allow

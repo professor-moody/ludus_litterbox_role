@@ -1,0 +1,9 @@
+---
+# Collection dependencies for ludus_litterbox role
+collections:
+  - name: ansible.windows
+    version: ">=2.0.0"
+  - name: community.windows
+    version: ">=2.0.0"
+  - name: chocolatey.chocolatey
+    version: ">=1.5.0"
