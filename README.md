@@ -24,7 +24,7 @@ LitterBox provides a controlled sandbox environment designed for security profes
 - 10GB free disk space
 - Administrator privileges
 
-## 🚀 Installation
+## Installation
 
 ### Install to a Ludus Range
 
@@ -87,7 +87,7 @@ ludus_litterbox_desktop_shortcut: true
 ludus_litterbox_debug: false
 ```
 
-## 💻 Example Playbook
+## Example Playbook
 
 ### Basic Installation
 
@@ -125,7 +125,7 @@ ludus_litterbox_debug: false
     - role: ludus_litterbox
 ```
 
-## 🔧 Post-Installation
+## Post-Installation
 
 After installation, LitterBox can be accessed in several ways:
 
@@ -149,7 +149,7 @@ from grumpycat import GrumpyCat
 client = GrumpyCat("http://127.0.0.1:1337")
 ```
 
-## 🔐 Security Considerations
+## Security Considerations
 
 ⚠️ **IMPORTANT SECURITY WARNINGS:**
 
@@ -202,7 +202,7 @@ git pull
 ludus ansible deploy -t "litterbox_server" --limit "TARGET_VM"
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -237,7 +237,7 @@ ludus_litterbox_debug: true
 - [Ludus Documentation](https://docs.ludus.cloud)
 - [Ansible Windows Modules](https://docs.ansible.com/ansible/latest/collections/ansible/windows/)
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -247,18 +247,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [BlackSnufkin](https://github.com/BlackSnufkin) - Original LitterBox author
 - [Professor Moody](https://github.com/professor-moody) - Ludus role maintainer
 - [Bad Sector Labs](https://github.com/badsectorlabs) - Ludus platform
 - All contributors to the integrated analysis tools
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This tool is intended for authorized security testing and research purposes only. Users are responsible for complying with all applicable laws and regulations. The authors assume no liability for misuse or damage caused by this software.
 
