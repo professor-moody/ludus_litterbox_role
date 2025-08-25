@@ -194,13 +194,6 @@ git pull
 .\venv\Scripts\pip.exe install -r requirements.txt --upgrade
 ```
 
-### Re-run Ansible Role
-
-```bash
-# Force update on specific VM
-ludus range deploy -t "litterbox" --limit "TARGET_VM" --extra-vars "ludus_litterbox_force_update=true"
-```
-
 ### Clean Installation
 
 ```powershell
