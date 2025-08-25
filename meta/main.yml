@@ -3,7 +3,7 @@ dependencies: []
 
 galaxy_info:
   role_name: ludus_litterbox
-  namespace: ludus
+  namespace: professor-moody
   author: moody
   description: Deploy LitterBox malware analysis sandbox on Windows systems in Ludus environments
   company: Professor Moody
