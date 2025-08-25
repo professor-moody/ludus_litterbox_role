@@ -1,0 +1,237 @@
+---
+# Tasks file for ludus_litterbox
+
+- name: Gather Windows facts
+  ansible.windows.setup:
+    gather_subset:
+      - env
+      - platform
+  tags:
+    - always
+
+- name: Check Windows version compatibility
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "Windows"
+      - ansible_distribution_major_version | int >= 10 or ansible_distribution == "Microsoft Windows Server 2019" or ansible_distribution == "Microsoft Windows Server 2022"
+    fail_msg: "This role requires Windows 10/11 or Server 2019/2022"
+    success_msg: "Windows version is compatible"
+  tags:
+    - always
+
+- name: Install LitterBox
+  when: ludus_litterbox_install
+  tags:
+    - litterbox
+    - install
+  block:
+    - name: Create LitterBox installation directory
+      ansible.windows.win_file:
+        path: "{{ ludus_litterbox_install_dir }}"
+        state: directory
+
+    - name: Check if Python is installed
+      ansible.windows.win_shell: |
+        try {
+          $pythonVersion = python --version 2>&1
+          if ($pythonVersion -match "Python (\d+\.\d+)") {
+            $version = [version]$matches[1]
+            if ($version -ge [version]"3.11") {
+              Write-Output "Python $version found"
+              exit 0
+            }
+          }
+        } catch {}
+        exit 1
+      register: python_check
+      ignore_errors: true
+      when: ludus_litterbox_install_python
+
+    - name: Download Python installer
+      include_tasks: download_file.yml
+      vars:
+        file_name: "python-{{ ludus_litterbox_python_version }}-amd64.exe"
+        file_url: "https://www.python.org/ftp/python/{{ ludus_litterbox_python_version }}/python-{{ ludus_litterbox_python_version }}-amd64.exe"
+        file_dest: "{{ ludus_litterbox_install_dir }}\\python-installer.exe"
+      when: 
+        - ludus_litterbox_install_python
+        - python_check.rc != 0
+
+    - name: Install Python
+      ansible.windows.win_shell: |
+        Start-Process -FilePath "{{ ludus_litterbox_install_dir }}\\python-installer.exe" `
+          -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_test=0" `
+          -Wait -NoNewWindow
+      when: 
+        - ludus_litterbox_install_python
+        - python_check.rc != 0
+      tags:
+        - python
+      notify:
+        - restart python
+
+    - name: Check if git is installed
+      ansible.windows.win_shell: |
+        try {
+          git --version
+          exit 0
+        } catch {
+          exit 1
+        }
+      register: git_check
+      ignore_errors: true
+
+    - name: Install Git using Chocolatey
+      ansible.windows.win_chocolatey:
+        name: git
+        state: present
+      when: git_check.rc != 0
+      tags:
+        - git
+
+    - name: Install Visual C++ Redistributables (required for analysis tools)
+      ansible.windows.win_chocolatey:
+        name: 
+          - vcredist140
+          - vcredist2015
+          - vcredist2017
+          - vcredist2019
+        state: present
+      ignore_errors: true
+      tags:
+        - dependencies
+
+    - name: Clone LitterBox repository
+      ansible.windows.win_shell: |
+        if (Test-Path "{{ ludus_litterbox_install_dir }}\\LitterBox") {
+          cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
+          git pull
+        } else {
+          cd "{{ ludus_litterbox_install_dir }}"
+          git clone {{ ludus_litterbox_repo_url }}
+        }
+
+    - name: Create Python virtual environment
+      ansible.windows.win_shell: |
+        cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
+        python -m venv venv
+      args:
+        creates: "{{ ludus_litterbox_install_dir }}\\LitterBox\\venv"
+
+    - name: Install Python requirements
+      ansible.windows.win_shell: |
+        cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
+        .\\venv\\Scripts\\pip.exe install --upgrade pip
+        .\\venv\\Scripts\\pip.exe install -r requirements.txt
+      register: pip_install
+      retries: 3
+      delay: 10
+
+    - name: Create necessary directories
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\config"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\uploads"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\results"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\temp"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\logs"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\database"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\tools"
+        - "{{ ludus_litterbox_install_dir }}\\LitterBox\\Scanners"
+      tags:
+        - directories
+
+    - name: Download and setup analysis tools
+      ansible.windows.win_shell: |
+        cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
+        # The LitterBox repository should include its own tools and scanners
+        # Verify critical directories exist
+        if (-not (Test-Path "Scanners")) {
+          Write-Warning "Scanners directory missing - analysis tools may not work properly"
+        }
+        if (-not (Test-Path "Utils")) {
+          Write-Warning "Utils directory missing - some features may be limited"
+        }
+        # Set execution policy for PowerShell scripts if needed
+        Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+      tags:
+        - tools
+
+    - name: Configure LitterBox settings
+      ansible.windows.win_template:
+        src: config.yml.j2
+        dest: "{{ ludus_litterbox_install_dir }}\\LitterBox\\config\\config.yml"
+      notify:
+        - restart litterbox service
+
+    - name: Create Windows Firewall rule for LitterBox
+      ansible.windows.win_firewall_rule:
+        name: "LitterBox Web Interface"
+        localport: "{{ ludus_litterbox_port }}"
+        action: allow
+        direction: in
+        protocol: tcp
+        state: present
+        enabled: yes
+      when: ludus_litterbox_firewall_rule
+
+    - name: Create batch file to start LitterBox
+      ansible.windows.win_template:
+        src: start_litterbox.bat.j2
+        dest: "{{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
+
+    - name: Create desktop shortcut for LitterBox
+      ansible.windows.win_shortcut:
+        src: "{{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
+        dest: "C:\\Users\\Public\\Desktop\\LitterBox.lnk"
+        icon: "{{ ludus_litterbox_install_dir }}\\LitterBox\\static\\favicon.ico,0"
+        description: "LitterBox - Malware Analysis Sandbox"
+        working_directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
+      when: ludus_litterbox_desktop_shortcut
+
+    - name: Create Windows service for LitterBox (optional)
+      ansible.windows.win_shell: |
+        $serviceName = "LitterBox"
+        $serviceExists = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        
+        if ($serviceExists) {
+          Stop-Service -Name $serviceName -Force
+          sc.exe delete $serviceName
+        }
+        
+        $pythonPath = "{{ ludus_litterbox_install_dir }}\\LitterBox\\venv\\Scripts\\python.exe"
+        $scriptPath = "{{ ludus_litterbox_install_dir }}\\LitterBox\\litterbox.py"
+        $arguments = if ({{ ludus_litterbox_debug | lower }}) { "--debug" } else { "" }
+        
+        New-Service -Name $serviceName `
+          -DisplayName "LitterBox Malware Analysis" `
+          -Description "LitterBox sandbox environment for malware analysis" `
+          -BinaryPathName "`"$pythonPath`" `"$scriptPath`" $arguments" `
+          -StartupType Manual
+      when: ludus_litterbox_autostart
+
+    - name: Download GrumpyCats client library
+      ansible.windows.win_shell: |
+        cd "{{ ludus_litterbox_install_dir }}\\LitterBox"
+        if (Test-Path "GrumpyCats") {
+          cd GrumpyCats
+          git pull
+        } else {
+          git clone https://github.com/BlackSnufkin/GrumpyCats.git
+        }
+      ignore_errors: true
+
+    - name: Display installation complete message
+      ansible.builtin.debug:
+        msg:
+          - "LitterBox has been successfully installed!"
+          - "Installation directory: {{ ludus_litterbox_install_dir }}\\LitterBox"
+          - "Web interface: http://{{ ludus_litterbox_host }}:{{ ludus_litterbox_port }}"
+          - "To start LitterBox:"
+          - "  - Use the desktop shortcut 'LitterBox'"
+          - "  - Or run: {{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
+          - ""
+          - "⚠️  SECURITY WARNING: LitterBox is designed for isolated testing environments only!"
+          - "Do not use in production or on systems with sensitive data."

@@ -1,0 +1,40 @@
+---
+galaxy_info:
+  role_name: ludus_litterbox
+  namespace: ludus
+  author: moody
+  description: Deploy LitterBox malware analysis sandbox on Windows systems in Ludus environments
+  company: Professor Moody
+  license: MIT
+  min_ansible_version: "2.10"
+  
+  platforms:
+    - name: Windows
+      versions:
+        - 2019
+        - 2022
+        - 10
+        - 11
+  
+  galaxy_tags:
+    - ludus
+    - windows
+    - malware
+    - sandbox
+    - analysis
+    - security
+    - redteam
+    - blueteam
+    - litterbox
+    - offensive
+    - defensive
+
+dependencies: []
+
+# Ludus-specific metadata
+ludus:
+  - vm_type: windows
+  - version: 1.0.0
+  - author_link: https://github.com/professor-moody/ludus_litterbox_role
+  - setup_time_minutes: 15-20
+  - readme_link: https://github.com/professor-moody/ludus_litterbox_role

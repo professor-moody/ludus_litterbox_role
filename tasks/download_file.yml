@@ -1,0 +1,21 @@
+---
+# This task downloads a file to the ludus host and then copies it to the target Windows host
+# This allows for caching of downloads on the ludus host to speed up subsequent deployments
+
+- name: Download {{ file_name }} to ludus host
+  ansible.builtin.get_url:
+    url: "{{ file_url }}"
+    dest: "/tmp/{{ file_name }}"
+    mode: '0644'
+    timeout: 300
+  delegate_to: localhost
+  become: false
+  register: download_result
+  retries: 3
+  delay: 5
+
+- name: Copy {{ file_name }} to Windows host
+  ansible.windows.win_copy:
+    src: "/tmp/{{ file_name }}"
+    dest: "{{ file_dest }}"
+  when: download_result is succeeded

@@ -1,0 +1,74 @@
+---
+# Defaults file for ludus_litterbox
+
+# Enable or disable LitterBox installation
+ludus_litterbox_install: true
+
+# Installation directory for LitterBox
+ludus_litterbox_install_dir: "C:\\Tools\\LitterBox"
+
+# Python version to install (if not already present)
+ludus_litterbox_python_version: "3.11.9"
+
+# Enable or disable Python installation
+ludus_litterbox_install_python: true
+
+# LitterBox repository URL
+ludus_litterbox_repo_url: "https://github.com/BlackSnufkin/LitterBox.git"
+
+# LitterBox server configuration
+ludus_litterbox_host: "127.0.0.1"
+ludus_litterbox_port: 1337
+
+# Enable or disable auto-start service
+ludus_litterbox_autostart: false
+
+# Enable or disable firewall rule creation
+ludus_litterbox_firewall_rule: true
+
+# Enable or disable desktop shortcut creation
+ludus_litterbox_desktop_shortcut: true
+
+# Enable debug mode
+ludus_litterbox_debug: false
+
+# Analysis configuration
+ludus_litterbox_analysis_timeout: 300  # seconds
+ludus_litterbox_max_file_size: 104857600  # 100MB in bytes
+ludus_litterbox_allowed_extensions:
+  - exe
+  - dll
+  - sys
+  - scr
+  - com
+  - bat
+  - ps1
+  - vbs
+  - js
+  - doc
+  - docx
+  - xls
+  - xlsx
+  - ppt
+  - pptx
+  - pdf
+  - lnk
+
+# Feature flags
+ludus_litterbox_enable_static: true
+ludus_litterbox_enable_dynamic: true
+ludus_litterbox_enable_holygrail: true
+ludus_litterbox_enable_doppelganger: true
+ludus_litterbox_enable_yara: true
+
+# Logging configuration
+ludus_litterbox_log_level: "INFO"
+ludus_litterbox_log_max_size: 10485760  # 10MB
+ludus_litterbox_log_backup_count: 5
+
+# Advanced settings
+ludus_litterbox_workers: 4
+ludus_litterbox_process_monitor_interval: 5
+ludus_litterbox_memory_scan_interval: 10
+ludus_litterbox_cleanup_days: 30
+ludus_litterbox_enable_telemetry: false

@@ -1,0 +1,35 @@
+---
+# Handlers for ludus_litterbox
+
+- name: restart litterbox service
+  ansible.windows.win_service:
+    name: LitterBox
+    state: restarted
+  when: ludus_litterbox_autostart
+
+- name: start litterbox service
+  ansible.windows.win_service:
+    name: LitterBox
+    state: started
+  when: ludus_litterbox_autostart
+
+- name: stop litterbox service
+  ansible.windows.win_service:
+    name: LitterBox
+    state: stopped
+
+- name: restart python
+  ansible.windows.win_shell: |
+    # Refresh environment variables to ensure Python is in PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    refreshenv 2>$null
+  ignore_errors: true
+
+- name: refresh firewall rules
+  ansible.windows.win_shell: |
+    # Force Windows Firewall to reload rules
+    netsh advfirewall firewall show rule name="LitterBox Web Interface" >$null 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      netsh advfirewall firewall set rule name="LitterBox Web Interface" new enable=yes
+    }
+  when: ludus_litterbox_firewall_rule
