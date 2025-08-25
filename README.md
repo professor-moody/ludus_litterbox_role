@@ -315,15 +315,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **IMPORTANT**: This tool is intended for authorized security testing and research purposes only. Users are solely responsible for complying with all applicable laws and regulations in their jurisdiction. 
 
-The authors and contributors:
-- Assume no liability for misuse or damage caused by this software
-- Do not condone or support illegal activities
-- Recommend using this tool only in isolated lab environments
-- Advise obtaining proper authorization before testing
-
-By using this software, you acknowledge that you understand and agree to these terms.
-
----
 
 **Role Version**: 1.0.0  
 **LitterBox Compatibility**: Latest  
