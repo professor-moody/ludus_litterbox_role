@@ -80,7 +80,7 @@
         path: "{{ ludus_litterbox_install_dir }}"
         state: directory
 
- - name: Disable Windows Defender for lab environment
+    - name: Disable Windows Defender for lab environment
       ansible.windows.win_shell: |
         Write-Output "WARNING: Disabling Windows Defender for malware analysis lab"
         
