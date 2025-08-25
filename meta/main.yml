@@ -1,4 +1,6 @@
 ---
+dependencies: []
+
 galaxy_info:
   role_name: ludus_litterbox
   namespace: ludus
@@ -29,9 +31,6 @@ galaxy_info:
     - offensive
     - defensive
 
-dependencies: []
-
-# Collection dependencies
 collections:
   - ansible.windows
   - community.windows
