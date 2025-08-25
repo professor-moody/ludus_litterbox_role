@@ -67,11 +67,10 @@ This won't work either:
 
 ```
 # Add role to ludus
-ludus roles add -d ludus_litterbox_role
-```
+```ludus roles add -d ludus_litterbox_role```
+# Add directly from Ansible Galaxy
+```ludus ansible roles add professor-moody.ludus_litterbox```
 
-But you can install with `ludus roles add -d ludus_litterbox_role`
-```
 
 ## Configuration
 
