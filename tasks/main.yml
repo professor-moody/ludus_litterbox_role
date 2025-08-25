@@ -132,23 +132,23 @@
       ignore_errors: true
 
     - name: Install Git using Chocolatey
-      ansible.windows.win_chocolatey:
-        name: git
-        state: present
+      ansible.windows.win_shell: |
+        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+          choco install git -y --no-progress
+        } else {
+          Write-Output "Git already installed"
+        }
       when: git_check.rc != 0
-      tags:
-        - git
-
     - name: Install Visual C++ Redistributables (required for analysis tools)
-      ansible.windows.win_chocolatey:
-        name: 
-          - vcredist140
-          - vcredist2015
-          - vcredist2017
-          - vcredist2019
-        state: present
+      ansible.windows.win_shell: |
+        $packages = @("vcredist140", "vcredist2015", "vcredist2017", "vcredist2019")
+        foreach ($package in $packages) {
+          Write-Output "Installing $package..."
+          choco install $package -y --no-progress --ignore-package-exit-codes
+        }
       ignore_errors: true
       tags:
+        - dependencies      tags:
         - dependencies
 
     - name: Clone LitterBox repository
