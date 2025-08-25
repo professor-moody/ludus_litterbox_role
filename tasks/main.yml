@@ -141,7 +141,7 @@
       when: git_check.rc != 0
     - name: Install Visual C++ Redistributables (required for analysis tools)
       ansible.windows.win_shell: |
-        $packages = @("vcredist140", "vcredist2015", "vcredist2017", "vcredist2019")
+        $packages = @("vcredist140", "vcredist2015", "vcredist2017")
         foreach ($package in $packages) {
           Write-Output "Installing $package..."
           choco install $package -y --no-progress --ignore-package-exit-codes
