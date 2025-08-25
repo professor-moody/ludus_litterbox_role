@@ -49,10 +49,10 @@ LitterBox provides a controlled sandbox environment designed for security profes
 ludus range roles add ludus_litterbox_role
 
 # Deploy to specific Windows VMs
-ludus range deploy -t "litterbox" --limit "WS01,WS02"
+ludus range deploy -t user-defined-roles --only-roles ludus_litterbox_role --limit "WS01,WS02"
 
 # Or deploy to all Windows VMs
-ludus range deploy -t "litterbox" --limit windows
+ludus range deploy -t user-defined-roles  --only-roles ludus_litterbox_role --limit windows
 ```
 
 ### Manual Installation
@@ -63,7 +63,14 @@ git clone https://github.com/professor-moody/ludus_litterbox_role
 cd ludus_litterbox_role
 
 # Copy to your Ansible roles directory
-cp -r . /etc/ansible/roles/ludus_litterbox_role/
+This won't work either: 
+
+```
+# Add role to ludus
+ludus roles add -d ludus_litterbox_role
+```
+
+But you can install with `ludus roles add -d ludus_litterbox_role`
 ```
 
 ## Configuration
