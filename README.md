@@ -44,8 +44,6 @@ LitterBox provides a controlled sandbox environment designed for security profes
 ### Quick Deploy to Ludus Range
 
 ```bash
-# Install required collections on Ludus server
-ansible-galaxy collection install ansible.windows community.windows chocolatey.chocolatey
 
 # Add the role to your Ludus server
 ludus range roles add ludus_litterbox_role
