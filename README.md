@@ -46,7 +46,7 @@ LitterBox provides a controlled sandbox environment designed for security profes
 ```bash
 
 # Add the role to your Ludus server
-ludus range roles add ludus_litterbox_role
+ludus ansible roles add professor-moody.ludus_litterbox
 
 # Deploy to specific Windows VMs
 ludus range deploy -t user-defined-roles --only-roles ludus_litterbox_role --limit "WS01,WS02"
@@ -55,15 +55,15 @@ ludus range deploy -t user-defined-roles --only-roles ludus_litterbox_role --lim
 ludus range deploy -t user-defined-roles  --only-roles ludus_litterbox_role --limit windows
 ```
 
-### Manual Installation
+## Manual Installation
 
-```bash
+```
 # Clone the repository
 git clone https://github.com/professor-moody/ludus_litterbox_role
 cd ludus_litterbox_role
+ludus roles add -d ludus_litterbox_role
 ```
-# Add role to ludus
-```ludus roles add -d ludus_litterbox_role```
+
 # Add directly from Ansible Galaxy
 ```ludus ansible roles add professor-moody.ludus_litterbox```
 
@@ -119,28 +119,22 @@ ludus_litterbox_debug: false                              # Enable debug logging
 
 ```yaml
 ---
-- hosts: litterbox_servers
   vars:
     ludus_litterbox_host: "0.0.0.0"              # Listen on all interfaces
     ludus_litterbox_port: 8080                   # Custom port
     ludus_litterbox_install_dir: "D:\\Security\\LitterBox"
     ludus_litterbox_debug: true                  # Enable debug logging
     ludus_litterbox_analysis_timeout: 600        # 10 minute timeout
-  roles:
-    - role: ludus_litterbox
 ```
 
 ### Minimal Installation (Keep Defender Active)
 
 ```yaml
 ---
-- hosts: analysis_workstations
   vars:
     ludus_litterbox_disable_defender: false      # Keep Defender enabled
     ludus_litterbox_defender_exclusions: false   # No AV exclusions
     ludus_litterbox_enable_dynamic: false        # Static analysis only
-  roles:
-    - role: ludus_litterbox
 ```
 
 ## Post-Installation Usage
