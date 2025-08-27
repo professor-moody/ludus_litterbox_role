@@ -2,7 +2,7 @@
 # Tasks file for ludus_litterbox
 
 - name: Gather Windows facts
-  ansible.windows.win_setup:
+  ansible.windows.setup:
     gather_subset:
       - env
       - platform
@@ -38,7 +38,7 @@
 - name: Fail if not running as administrator
   ansible.builtin.fail:
     msg: "This role requires administrator privileges. Please run with elevated permissions."
-  when:
+  when: 
     - ludus_litterbox_require_admin
     - admin_check.rc != 0
   tags:
@@ -49,7 +49,7 @@
   ansible.windows.win_feature:
     name: NET-Framework-Core
     state: present
-    include_management_tools: true
+    include_management_tools: yes
   when: "'Windows Server' in ansible_distribution"
   register: dotnet35_server
   tags:
@@ -100,7 +100,6 @@
     - dependencies
     - dotnet
 
-# Chocolatey Installation
 - name: Check if Chocolatey is installed
   ansible.windows.win_shell: |
     try {
@@ -120,13 +119,12 @@
     Set-ExecutionPolicy Bypass -Scope Process -Force
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
     iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-  when:
+  when: 
     - ludus_litterbox_install_chocolatey
     - chocolatey_check.rc != 0
   tags:
     - chocolatey
 
-# Main LitterBox Installation
 - name: Install LitterBox
   when: ludus_litterbox_install
   tags:
@@ -140,7 +138,7 @@
 
     - name: Disable Windows Defender 1
       ansible.windows.win_shell: 'Add-MpPreference -ExclusionPath C:\'
-      ignore_errors: true
+      ignore_errors: yes
       when: ludus_litterbox_disable_defender
       tags:
         - defender
@@ -158,7 +156,7 @@
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Force | Out-Null
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SpynetReporting" -Value 0 -Type DWord
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SubmitSamplesConsent" -Value 2 -Type DWord
-      ignore_errors: true
+      ignore_errors: yes
       when: ludus_litterbox_disable_defender
       tags:
         - defender
@@ -182,12 +180,12 @@
       when: ludus_litterbox_install_python
 
     - name: Download Python installer
-      ansible.builtin.include_tasks: download_file.yml
+      include_tasks: download_file.yml
       vars:
         file_name: "python-{{ ludus_litterbox_python_version }}-amd64.exe"
         file_url: "https://www.python.org/ftp/python/{{ ludus_litterbox_python_version }}/python-{{ ludus_litterbox_python_version }}-amd64.exe"
         file_dest: "{{ ludus_litterbox_install_dir }}\\python-installer.exe"
-      when:
+      when: 
         - ludus_litterbox_install_python
         - python_check.rc != 0
 
@@ -196,13 +194,13 @@
         Start-Process -FilePath "{{ ludus_litterbox_install_dir }}\\python-installer.exe" `
           -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_test=0" `
           -Wait -NoNewWindow
-      when:
+      when: 
         - ludus_litterbox_install_python
         - python_check.rc != 0
       tags:
         - python
       notify:
-        - Restart python
+        - restart python
 
     - name: Check if git is installed
       ansible.windows.win_shell: |
@@ -371,7 +369,6 @@
         - dependencies
         - verify
 
-    # Continue with original LitterBox installation
     - name: Clone LitterBox repository
       ansible.windows.win_shell: |
         if (Test-Path "{{ ludus_litterbox_install_dir }}\\LitterBox") {
@@ -473,7 +470,7 @@
         direction: in
         protocol: tcp
         state: present
-        enabled: true
+        enabled: yes
       when: ludus_litterbox_firewall_rule
 
     - name: Create batch file to start LitterBox
@@ -506,7 +503,7 @@
         msg:
           - "LitterBox has been successfully installed!"
           - "Installation directory: {{ ludus_litterbox_install_dir }}\\LitterBox"
-          - "Web interface will run on port {{ ludus_litterbox_port }}"
+          - "Web interface will run on default port when started"
           - "To start LitterBox:"
           - "  - Use the desktop shortcut 'LitterBox'"
           - "  - Or run: {{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
