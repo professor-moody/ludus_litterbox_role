@@ -251,7 +251,8 @@
         $allPresent = $true
         
         foreach ($dll in $debugDlls) {
-          if (-not (Test-Path "C:\\Windows\\System32\\$dll")) {
+          $dllPath = "C:\Windows\System32\" + $dll
+          if (-not (Test-Path $dllPath)) {
             $allPresent = $false
             Write-Output "$dll not found"
           }
@@ -273,7 +274,8 @@
         # Verify installation
         $stillMissing = @()
         foreach ($dll in $debugDlls) {
-          if (-not (Test-Path "C:\\Windows\\System32\\$dll")) {
+          $dllPath = "C:\Windows\System32\" + $dll
+          if (-not (Test-Path $dllPath)) {
             $stillMissing += $dll
           }
         }
@@ -292,7 +294,7 @@
     - name: Install Windows SDK for ucrtbased.dll
       ansible.windows.win_shell: |
         # Check if ucrtbased.dll is present
-        if (Test-Path "C:\\Windows\\System32\\ucrtbased.dll") {
+        if (Test-Path 'C:\Windows\System32\ucrtbased.dll') {
           Write-Output "ucrtbased.dll already present"
           exit 0
         }
@@ -303,20 +305,20 @@
         choco install windows-sdk-10-version-2004-all -y --no-progress --force
         
         # Check if ucrtbased.dll was installed
-        if (Test-Path "C:\\Windows\\System32\\ucrtbased.dll") {
+        if (Test-Path 'C:\Windows\System32\ucrtbased.dll') {
           Write-Output "ucrtbased.dll successfully installed"
         } else {
           # Try to find and copy from Windows Kits installation
           $searchPaths = @(
-            "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\*\\x64\\ucrt\\ucrtbased.dll",
-            "C:\\Program Files (x86)\\Microsoft Visual Studio\\*\\*\\VC\\Redist\\*\\debug_nonredist\\x64\\*\\ucrtbased.dll"
+            'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\ucrt\ucrtbased.dll',
+            'C:\Program Files (x86)\Microsoft Visual Studio\*\*\VC\Redist\*\debug_nonredist\x64\*\ucrtbased.dll'
           )
           
           $found = $false
           foreach ($path in $searchPaths) {
             $files = Get-ChildItem -Path $path -ErrorAction SilentlyContinue
             if ($files) {
-              Copy-Item $files[0].FullName -Destination "C:\\Windows\\System32\\" -Force
+              Copy-Item $files[0].FullName -Destination 'C:\Windows\System32\' -Force
               Write-Output "Copied ucrtbased.dll from Windows Kits"
               $found = $true
               break
@@ -347,7 +349,8 @@
         $present = @()
         
         foreach ($dll in $requiredDlls) {
-          if (Test-Path "C:\\Windows\\System32\\$dll") {
+          $dllPath = "C:\Windows\System32\" + $dll
+          if (Test-Path $dllPath) {
             $present += $dll
           } else {
             $missing += $dll
@@ -437,7 +440,8 @@
           $missing = @()
           
           foreach ($dll in $requiredDlls) {
-            if (-not (Test-Path "C:\\Windows\\System32\\$dll")) {
+            $dllPath = "C:\Windows\System32\" + $dll
+            if (-not (Test-Path $dllPath)) {
               $missing += $dll
             }
           }
