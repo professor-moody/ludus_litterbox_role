@@ -44,6 +44,69 @@
   tags:
     - always
 
+# ============================================================================
+# .NET Framework 3.5 Installation (BEFORE disabling Windows Update)
+# ============================================================================
+
+- name: Install .NET Framework 3.5 on Windows Server
+  ansible.windows.win_feature:
+    name: NET-Framework-Core
+    state: present
+    include_management_tools: yes
+  when: "'Windows Server' in ansible_distribution"
+  register: dotnet35_server
+  tags:
+    - dependencies
+    - dotnet
+
+- name: Install .NET Framework 3.5 on Windows Desktop
+  ansible.windows.win_optional_feature:
+    name: NetFx3
+    state: present
+  when: "'Windows Server' not in ansible_distribution"
+  register: dotnet35_desktop
+  tags:
+    - dependencies
+    - dotnet
+
+- name: Verify .NET Framework 3.5 installation (fallback method)
+  ansible.windows.win_shell: |
+    # Check current state
+    if ($env:OS -match "Windows_NT") {
+      $osInfo = Get-WmiObject -Class Win32_OperatingSystem
+      
+      if ($osInfo.Caption -match "Server") {
+        # Windows Server
+        $feature = Get-WindowsFeature -Name NET-Framework-Core -ErrorAction SilentlyContinue
+        if ($feature -and $feature.InstallState -eq "Installed") {
+          Write-Output ".NET Framework 3.5 is installed"
+          exit 0
+        } else {
+          Write-Output "Installing .NET Framework 3.5 on Server..."
+          Install-WindowsFeature -Name NET-Framework-Core -IncludeAllSubFeature
+        }
+      } else {
+        # Windows Desktop
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue
+        if ($feature -and $feature.State -eq "Enabled") {
+          Write-Output ".NET Framework 3.5 is installed"
+          exit 0
+        } else {
+          Write-Output "Installing .NET Framework 3.5 on Desktop..."
+          Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All -NoRestart
+        }
+      }
+    }
+  register: dotnet35_verify
+  ignore_errors: true
+  tags:
+    - dependencies
+    - dotnet
+
+# ============================================================================
+# Chocolatey Installation
+# ============================================================================
+
 - name: Check if Chocolatey is installed
   ansible.windows.win_shell: |
     try {
@@ -68,6 +131,10 @@
     - chocolatey_check.rc != 0
   tags:
     - chocolatey
+
+# ============================================================================
+# Main LitterBox Installation
+# ============================================================================
 
 - name: Install LitterBox
   when: ludus_litterbox_install
@@ -166,16 +233,159 @@
         }
       when: git_check.rc != 0
 
-    - name: Install Visual C++ Redistributables (required for analysis tools)
+    # ============================================================================
+    # Enhanced Dependencies Installation
+    # ============================================================================
+
+    - name: Install all Visual C++ Redistributables
       ansible.windows.win_shell: |
-        $packages = @("vcredist140")
+        Write-Output "Installing Visual C++ Redistributables..."
+        $packages = @(
+          "vcredist-all",      # All VC++ redistributables
+          "vcredist140",       # VC++ 2015-2022 specifically
+          "dotnetfx",          # Latest .NET Framework
+          "netfx-4.8"          # .NET Framework 4.8 specifically
+        )
+        
         foreach ($package in $packages) {
           Write-Output "Installing $package..."
-          choco install $package -y --no-progress --ignore-package-exit-codes
+          choco install $package -y --no-progress --ignore-package-exit-codes --force
         }
+        
+        Write-Output "Base redistributables installed"
       ignore_errors: true
       tags:
         - dependencies
+        - vcredist
+
+    - name: Install Visual Studio Build Tools with C++ Debug Libraries
+      ansible.windows.win_shell: |
+        # Check if debug DLLs already installed
+        $debugDlls = @("MSVCP140D.dll", "VCRUNTIME140D.dll")
+        $allPresent = $true
+        
+        foreach ($dll in $debugDlls) {
+          if (-not (Test-Path "C:\Windows\System32\$dll")) {
+            $allPresent = $false
+            Write-Output "$dll not found"
+          }
+        }
+        
+        if ($allPresent) {
+          Write-Output "Debug DLLs already present"
+          exit 0
+        }
+        
+        # Install Visual Studio Build Tools
+        Write-Output "Installing Visual Studio Build Tools..."
+        choco install visualstudio2022buildtools -y --no-progress --force
+        
+        # Install C++ workload with debug libraries
+        Write-Output "Installing C++ workload with debug libraries..."
+        choco install visualstudio2022-workload-vctools -y --no-progress --force
+        
+        # Verify installation
+        $stillMissing = @()
+        foreach ($dll in $debugDlls) {
+          if (-not (Test-Path "C:\Windows\System32\$dll")) {
+            $stillMissing += $dll
+          }
+        }
+        
+        if ($stillMissing.Count -eq 0) {
+          Write-Output "Debug DLLs successfully installed"
+        } else {
+          Write-Warning "Still missing: $($stillMissing -join ', ')"
+        }
+      register: vs_build_tools_install
+      ignore_errors: true
+      tags:
+        - dependencies
+        - debug_runtime
+
+    - name: Install Windows SDK for ucrtbased.dll
+      ansible.windows.win_shell: |
+        # Check if ucrtbased.dll is present
+        if (Test-Path "C:\Windows\System32\ucrtbased.dll") {
+          Write-Output "ucrtbased.dll already present"
+          exit 0
+        }
+        
+        Write-Output "Installing Windows SDK..."
+        
+        # Try to install Windows SDK via Chocolatey
+        choco install windows-sdk-10-version-2004-all -y --no-progress --force
+        
+        # Check if ucrtbased.dll was installed
+        if (Test-Path "C:\Windows\System32\ucrtbased.dll") {
+          Write-Output "ucrtbased.dll successfully installed"
+        } else {
+          # Try to find and copy from Windows Kits installation
+          $searchPaths = @(
+            "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\ucrt\ucrtbased.dll",
+            "C:\Program Files (x86)\Microsoft Visual Studio\*\*\VC\Redist\*\debug_nonredist\x64\*\ucrtbased.dll"
+          )
+          
+          $found = $false
+          foreach ($path in $searchPaths) {
+            $files = Get-ChildItem -Path $path -ErrorAction SilentlyContinue
+            if ($files) {
+              Copy-Item $files[0].FullName -Destination "C:\Windows\System32\" -Force
+              Write-Output "Copied ucrtbased.dll from Windows Kits"
+              $found = $true
+              break
+            }
+          }
+          
+          if (-not $found) {
+            Write-Warning "ucrtbased.dll could not be installed - RedEdr may not function"
+          }
+        }
+      register: windows_sdk_install
+      ignore_errors: true
+      tags:
+        - dependencies
+        - sdk
+
+    - name: Verify all debug dependencies
+      ansible.windows.win_shell: |
+        Write-Output "Verifying debug runtime dependencies..."
+        
+        $requiredDlls = @(
+          "MSVCP140D.dll",
+          "VCRUNTIME140D.dll",
+          "ucrtbased.dll"
+        )
+        
+        $missing = @()
+        $present = @()
+        
+        foreach ($dll in $requiredDlls) {
+          if (Test-Path "C:\Windows\System32\$dll") {
+            $present += $dll
+          } else {
+            $missing += $dll
+          }
+        }
+        
+        if ($present.Count -gt 0) {
+          Write-Output "Found: $($present -join ', ')"
+        }
+        
+        if ($missing.Count -gt 0) {
+          Write-Warning "Missing: $($missing -join ', ')"
+          Write-Warning "Some analysis tools (like RedEdr.exe) may not function properly"
+        } else {
+          Write-Output "All debug runtime dependencies are installed!"
+        }
+      register: debug_deps_verify
+      tags:
+        - dependencies
+        - verify
+
+    # ============================================================================
+    # Continue with original LitterBox installation
+    # ============================================================================
 
     - name: Clone LitterBox repository
       ansible.windows.win_shell: |
@@ -235,6 +445,40 @@
       tags:
         - tools
 
+    - name: Handle RedEdr.exe debug dependency issues
+      ansible.windows.win_shell: |
+        $redEdrPath = "{{ ludus_litterbox_install_dir }}\\LitterBox\\Scanners\\RedEdr.exe"
+        
+        if (Test-Path $redEdrPath) {
+          # Check if all debug DLLs are present
+          $requiredDlls = @("MSVCP140D.dll", "VCRUNTIME140D.dll", "ucrtbased.dll")
+          $missing = @()
+          
+          foreach ($dll in $requiredDlls) {
+            if (-not (Test-Path "C:\Windows\System32\$dll")) {
+              $missing += $dll
+            }
+          }
+          
+          if ($missing.Count -gt 0) {
+            Write-Warning "RedEdr.exe is missing debug libraries: $($missing -join ', ')"
+            Write-Warning "RedEdr.exe may not function properly"
+            
+            # Optionally disable RedEdr if debug libs are missing
+            if ($missing.Count -eq 3) {
+              # All debug libs missing, probably won't work at all
+              # Rename-Item -Path $redEdrPath -NewName "RedEdr.exe.disabled" -Force
+              # Write-Warning "RedEdr.exe has been disabled due to missing dependencies"
+            }
+          } else {
+            Write-Output "RedEdr.exe dependencies verified"
+          }
+        }
+      ignore_errors: true
+      tags:
+        - tools
+        - verify
+
     - name: Create Windows Firewall rule for LitterBox
       community.windows.win_firewall_rule:
         name: "LitterBox Web Interface"
@@ -276,11 +520,43 @@
         msg:
           - "LitterBox has been successfully installed!"
           - "Installation directory: {{ ludus_litterbox_install_dir }}\\LitterBox"
-          - "Web interface will run on default port when started"
+          - "Web interface will run on port {{ ludus_litterbox_port }}"
           - "To start LitterBox:"
           - "  - Use the desktop shortcut 'LitterBox'"
           - "  - Or run: {{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
           - "  - Or manually: cd {{ ludus_litterbox_install_dir }}\\LitterBox && .\\venv\\Scripts\\python.exe litterbox.py"
           - ""
+          - "Debug Dependencies Status:"
+          - "{{ debug_deps_verify.stdout_lines | default(['Not checked']) | join('\n') }}"
+          - ""
           - "⚠️  SECURITY WARNING: LitterBox is designed for isolated testing environments only!"
           - "Do not use in production or on systems with sensitive data."
+
+# ============================================================================
+# Optional: Disable Windows Updates (for isolated lab environments only)
+# ============================================================================
+
+- name: Disable Windows Update (LAB ENVIRONMENT ONLY)
+  ansible.windows.win_shell: |
+    Write-Warning "Disabling Windows Update for isolated lab environment"
+    
+    # Create registry keys if they don't exist
+    if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate")) {
+      New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force | Out-Null
+    }
+    if (-not (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")) {
+      New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Force | Out-Null
+    }
+    
+    # Disable automatic updates
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "NoAutoUpdate" -Value 1 -Type DWord -Force
+    
+    # Stop and disable Windows Update service
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    Set-Service -Name wuauserv -StartupType Disabled
+    
+    Write-Output "Windows Update has been disabled"
+  when: ludus_litterbox_disable_windows_update | default(false)
+  tags:
+    - updates
+    - dangerous
