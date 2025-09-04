@@ -315,7 +315,7 @@
         name: "LITTERBOX"
         description: "Start LitterBox on boot"
         actions:
-          - path: "C:\\Tools\\LitterBox\\start_litterbox.bat"
+          - path: "{{ ludus_litterbox_install_dir }}\\start_litterbox.bat"
             arguments: ""
         triggers:
           - type: boot
