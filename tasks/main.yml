@@ -38,7 +38,7 @@
 - name: Fail if not running as administrator
   ansible.builtin.fail:
     msg: "This role requires administrator privileges. Please run with elevated permissions."
-  when: 
+  when:
     - ludus_litterbox_require_admin
     - admin_check.rc != 0
   tags:
@@ -54,7 +54,7 @@
   tags:
     - dependencies
 
-- name: Install .NET Framework 3.5 on Windows Desktop  
+- name: Install .NET Framework 3.5 on Windows Desktop
   ansible.windows.win_optional_feature:
     name: NetFx3
     state: present
@@ -82,7 +82,7 @@
     Set-ExecutionPolicy Bypass -Scope Process -Force
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
     iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-  when: 
+  when:
     - ludus_litterbox_install_chocolatey
     - chocolatey_check.rc != 0
   tags:
@@ -148,7 +148,7 @@
         file_name: "python-{{ ludus_litterbox_python_version }}-amd64.exe"
         file_url: "https://www.python.org/ftp/python/{{ ludus_litterbox_python_version }}/python-{{ ludus_litterbox_python_version }}-amd64.exe"
         file_dest: "{{ ludus_litterbox_install_dir }}\\python-installer.exe"
-      when: 
+      when:
         - ludus_litterbox_install_python
         - python_check.rc != 0
 
@@ -157,7 +157,7 @@
         Start-Process -FilePath "{{ ludus_litterbox_install_dir }}\\python-installer.exe" `
           -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_test=0" `
           -Wait -NoNewWindow
-      when: 
+      when:
         - ludus_litterbox_install_python
         - python_check.rc != 0
       tags:
@@ -266,6 +266,36 @@
         enabled: yes
       when: ludus_litterbox_firewall_rule
 
+    - name: Make required LitterBox config changes
+      block:
+        - name: Load existing LitterBox config.yaml
+          ansible.builtin.slurp:
+            src: "{{ ludus_litterbox_install_dir }}/LitterBox/config/config.yaml"
+          register: raw_config
+
+        - name: Decode and parse YAML
+          ansible.builtin.set_fact:
+            config_data: "{{ raw_config.content | b64decode | from_yaml }}"
+
+        - name: Modify specific values in config_data
+          ansible.builtin.set_fact:
+            config_data: >-
+              {{ config_data | combine({
+                'application': {
+                  'host': ludus_litterbox_host | string,
+                  'port': ludus_litterbox_port | int
+                },
+                'utils': {
+                  'allowed_extensions': ludus_litterbox_allowed_extensions
+                }
+              }, recursive=True) }}
+
+        - name: Write updated config.yaml
+          ansible.windows.win_copy:
+            dest: "{{ ludus_litterbox_install_dir }}/LitterBox/config/config.yaml"
+            content: "{{ config_data | to_nice_yaml }}"
+            backup: true
+
     - name: Create batch file to start LitterBox
       ansible.windows.win_template:
         src: start_litterbox.bat.j2
@@ -279,6 +309,21 @@
         description: "LitterBox - Malware Analysis Sandbox"
         directory: "{{ ludus_litterbox_install_dir }}\\LitterBox"
       when: ludus_litterbox_desktop_shortcut
+
+    - name: Create a scheduled task for LitterBox
+      community.windows.win_scheduled_task:
+        name: "LITTERBOX"
+        description: "Start LitterBox on boot"
+        actions:
+          - path: "C:\\Tools\\LitterBox\\start_litterbox.bat"
+            arguments: ""
+        triggers:
+          - type: boot
+        username: "SYSTEM"
+        run_level: highest
+        state: present
+        enabled: true
+      when: ludus_litterbox_autostart
 
     - name: Download GrumpyCats client library
       ansible.windows.win_shell: |
